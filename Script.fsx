@@ -7,6 +7,16 @@
 open Cess
 open FParsec
 
-run Parser.statement ("""
-  for (;;) printf("hi, mom"); 
+run Parser.block ("""
+  {
+  int c;
+  int d = 10;
+
+  for (c = 0; c < d; c = c + 1)
+  {
+    printf("hi, mom [%d]", c);
+  }
+
+  return d;
+  }
 """.Trim ())

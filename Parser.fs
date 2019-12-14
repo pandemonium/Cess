@@ -107,12 +107,18 @@ namespace Cess
 
     let keyword name = pstring name .>> ws
 
-    let ignoredExpression =
-      expression .>> semicolon |>> Ignore
+    let expressionStatement =
+      expression .>> semicolon |>> Ignore |> attempt
+
+    let openBlock = pstring "{" .>> ws
+    let closeBlock = pstring "}" .>> ws
 
     let simpleBlock = statement |>> Block.Simple
 
-    let block = simpleBlock
+    let compoundBlock = 
+      many statement |> between openBlock closeBlock |>> Block.Compound
+
+    let block = simpleBlock <|> compoundBlock
 
     let predicateSection = between openArgs closeArgs expression
 
@@ -125,7 +131,6 @@ namespace Cess
     let whileStatement =
       let loopBody = block
       keyword "while" >>. tuple2 predicateSection loopBody |>> While
-
 
     let forStatement =
       let letBindings = sepBy expression comma
@@ -153,12 +158,12 @@ namespace Cess
     let typedBinding = typeTerm .>>. identifier |>> Simple
 
     let declareStatement = 
-      typedBinding  .>>. opt expression .>> semicolon |>> Declare 
+      typedBinding  .>>. opt (assign >>. expression) .>> semicolon |>> Declare 
 
     statementRef := 
-      ifStatement     <|>
-      whileStatement  <|>
-      forStatement    <|>
-      returnStatement <|>
-      declareStatement <|>
-      ignoredExpression
+      expressionStatement <|>
+      ifStatement         <|>
+      whileStatement      <|>
+      forStatement        <|>
+      returnStatement     <|>
+      declareStatement
