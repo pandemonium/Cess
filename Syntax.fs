@@ -5,8 +5,10 @@ module Syntax =
   type Program =
     | CompilationUnit of ToplevelDeclaration list
 
+  and FunctionDecl     = TypeTerm * Symbol * TypedBinding list * Block
+
   and ToplevelDeclaration =
-    | Function        of TypeTerm * Symbol * TypedBinding list * Block
+    | Function        of FunctionDecl
     | Variable        of Declaration
     | Type            of Symbol * TypedBinding list
 
@@ -20,11 +22,11 @@ module Syntax =
     | Simple          of Statement
     | Compound        of Statement list
 
-  and LetBinding      = Symbol * Expression
+  and LetBinding       = Symbol * Expression
 
-  and Expressions     = Expression list
+  and Expressions      = Expression list
 
-  and Declaration     = TypedBinding * Expression option
+  and Declaration      = TypedBinding * Expression option
 
   and Statement =
     | Ignore          of Expression
@@ -43,8 +45,7 @@ module Syntax =
     | Select          of Symbol
     | Operator        of Symbol
 
-  and TypedBinding =
-    | Simple          of TypeTerm * Symbol
+  and TypedBinding     = TypeTerm * Symbol
 
   and Constant =    
     | Int             of int
