@@ -6,7 +6,8 @@ module Syntax =
     | CompilationUnit of ToplevelDeclaration list
 
   and ToplevelDeclaration =
-    | Function        of Symbol * TypedBinding list * TypeTerm * Statement
+    | Function        of TypeTerm * Symbol * TypedBinding list * Block
+    | Variable        of Declaration
     | Type            of Symbol * TypedBinding list
 
   and Expression =
@@ -23,13 +24,15 @@ module Syntax =
 
   and Expressions     = Expression list
 
+  and Declaration     = TypedBinding * Expression option
+
   and Statement =
     | Ignore          of Expression
     | If              of Expression * Block * Block
     | While           of Expression * Block
     | For             of Expressions * Expressions * Expressions * Block
     | Return          of Expression
-    | Declare         of TypedBinding * Expression option
+    | Declaration     of Declaration
 
   and TypeTerm =
     | Select          of Symbol

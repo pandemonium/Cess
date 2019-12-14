@@ -7,16 +7,15 @@
 open Cess
 open FParsec
 
-run Parser.block ("""
-  {
-  int c;
-  int d = 10;
+run Parser.compilationUnit """
+  int g = 10;
+  int main(char argv) {
+    int c;
+    printf("Hi, mom: %d %d", c, j);
 
-  for (c = 0; c < d; c = c + 1)
-  {
-    printf("hi, mom [%d]", c);
-  }
+    for (c = 0; c < 10; c = c + 1)
+      puts ("hello, world!");
 
-  return d;
+    return 0;
   }
-""".Trim ())
+"""

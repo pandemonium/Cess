@@ -7,11 +7,9 @@ namespace Cess
   module Parser =
     let todo<'a> : 'a = failwith "Not implemented!"
 
-
     let ws = spaces
 
-    let normalChar = 
-      satisfy (fun c -> c <> '\\' && c <> '"' && c <> ''')
+    let normalChar = noneOf """\\"'"""
 
     let unescape = function
       | 'n' -> '\n'
@@ -19,24 +17,19 @@ namespace Cess
       | 't' -> '\t'
       | c   -> c
 
-    let escapedChar = 
-      pstring "\\" >>. (anyOf "\\nrt\"" |>> unescape)
+    let escapedChar = pstring "\\" >>. (anyOf "\\nrt\"" |>> unescape)
 
     let singleQuote = pstring "'"
 
     let doubleQuote = pstring "\""
 
-    let enclosedWithin delimiter = 
-      between delimiter delimiter
+    let enclosedWithin delimiter = between delimiter delimiter
 
-    let charLiteral =
-      normalChar <|> escapedChar
-      |> enclosedWithin singleQuote
+    let charLiteral = 
+      (normalChar <|> escapedChar) |> enclosedWithin singleQuote
 
     let stringLiteral =
-      normalChar <|> escapedChar
-      |> manyChars
-      |> enclosedWithin doubleQuote
+      (normalChar <|> escapedChar) |> manyChars |> enclosedWithin doubleQuote
 
     let constant =
       (pint32        |>> Int)   <|>
@@ -46,8 +39,7 @@ namespace Cess
 
     let literal = constant .>> ws |>> Literal
 
-    let identifier = 
-      many1Chars (letter <|> pchar '_') .>> ws |>> Name
+    let identifier =  many1Chars (letter <|> pchar '_') .>> ws |>> Name
 
     let variable = identifier |>> (Variable << Select)
 
@@ -57,26 +49,21 @@ namespace Cess
 
     let arguments = sepBy expression comma
 
-    let openArgs = pstring "(" .>> ws
+    let openParen = pstring "(" .>> ws
 
-    let closeArgs = pstring ")" .>> ws
+    let closeParen = pstring ")" .>> ws
 
-    let argumentList =
-      between openArgs closeArgs arguments
+    let argumentList = between openParen closeParen arguments
 
-    let functionName =
-      identifier |>> Select
+    let functionName = identifier |>> Select
 
-    let functionCall =
-      tuple2 functionName argumentList |>> Apply
+    let functionCall = tuple2 functionName argumentList |>> Apply
 
     let assign = pstring "=" .>> ws
 
-    let letBinding = 
-      tuple2 (identifier .>> assign) expression |>> Let
+    let letBinding = tuple2 (identifier .>> assign) expression |>> Let
 
-    let term =
-      (attempt functionCall) <|> literal <|> variable 
+    let term = (attempt functionCall) <|> literal <|> variable 
 
     // Should this take care of `=` ?
     let mkApply op lhs rhs =
@@ -120,7 +107,7 @@ namespace Cess
 
     let block = simpleBlock <|> compoundBlock
 
-    let predicateSection = between openArgs closeArgs expression
+    let predicateSection = between openParen closeParen expression
 
     let ifStatement =
       let whenFalse = keyword "else" >>. block
@@ -143,7 +130,7 @@ namespace Cess
           updates
 
       keyword "for"
-          >>. between openArgs closeArgs preamble
+          >>. between openParen closeParen preamble
           .>>. block
           |>> (fun ((a, b, c), d) -> a, b, c, d)
           |>> For
@@ -157,8 +144,10 @@ namespace Cess
 
     let typedBinding = typeTerm .>>. identifier |>> Simple
 
-    let declareStatement = 
-      typedBinding  .>>. opt (assign >>. expression) .>> semicolon |>> Declare 
+    let declaration = 
+      typedBinding  .>>. opt (assign >>. expression) .>> semicolon
+
+    let declareStatement = declaration |>> Declaration 
 
     statementRef := 
       expressionStatement <|>
@@ -167,3 +156,22 @@ namespace Cess
       forStatement        <|>
       returnStatement     <|>
       declareStatement
+
+    let functionDeclaration =
+      let formalsList = 
+        let formals = 
+          let formal = typedBinding
+
+          sepBy formal comma
+        between openParen closeParen formals
+
+      tuple4 typeTerm identifier formalsList block |>> Function
+
+    let variableDeclaration = declaration |>> ToplevelDeclaration.Variable
+
+    let toplevelDeclaration = 
+      (attempt functionDeclaration) <|> variableDeclaration
+
+    let compilationUnit = 
+      ws >>. many1 toplevelDeclaration .>> eof
+      
