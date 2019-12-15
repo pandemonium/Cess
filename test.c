@@ -14,9 +14,10 @@ void v(int j)
 
 int main()
 {
-  int c, d = { foo(1) };
+  int c = 1, d = 5;
 
-  for (foo(c) < 10; printf("Hi, mom"); c = c + 1 ) printf("hi");
+  for (c = 0, d = c; c < 10; c = c + 1) 
+    printf ("c = %d, d = %d", c, d);
 
   return 0;
 }

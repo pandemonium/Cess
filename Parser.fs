@@ -1,7 +1,7 @@
 namespace Cess
 
 open FParsec
-open Syntax
+open AbstractSyntax
 
 
 module Parser =

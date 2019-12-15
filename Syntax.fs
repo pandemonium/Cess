@@ -1,16 +1,24 @@
 namespace Cess
 
-module Syntax =
+module AbstractSyntax =
 
-  type Program =
+  type Tree =
     | CompilationUnit of ToplevelDeclaration list
+
+  and TypedBinding     = TypeTerm * Symbol
 
   and FunctionDecl     = TypeTerm * Symbol * TypedBinding list * Block
 
+  and VariableDecl     = TypedBinding * Expression option
+
+  and TypeDecl         = Symbol * TypedBinding list
+
   and ToplevelDeclaration =
     | Function        of FunctionDecl
-    | Variable        of Declaration
-    | Type            of Symbol * TypedBinding list
+    | Variable        of VariableDecl
+    | Type            of TypeDecl
+
+  and LetBinding       = Symbol * Expression
 
   and Expression =
     | Literal         of Constant
@@ -22,11 +30,7 @@ module Syntax =
     | Simple          of Statement
     | Compound        of Statement list
 
-  and LetBinding       = Symbol * Expression
-
   and Expressions      = Expression list
-
-  and Declaration      = TypedBinding * Expression option
 
   and Statement =
     | Ignore          of Expression
@@ -34,7 +38,7 @@ module Syntax =
     | While           of Expression * Block
     | For             of Expressions * Expressions * Expressions * Block
     | Return          of Expression
-    | Declaration     of Declaration
+    | Declaration     of VariableDecl
 
   and TypeTerm =
     | Select          of Symbol
@@ -44,8 +48,6 @@ module Syntax =
   and NameTerm =
     | Select          of Symbol
     | Operator        of Symbol
-
-  and TypedBinding     = TypeTerm * Symbol
 
   and Constant =    
     | Int             of int
