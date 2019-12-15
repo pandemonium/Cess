@@ -66,8 +66,8 @@ module Parser =
   let term = (attempt functionCall) <|> literal <|> variable 
 
   // Should this take care of `=` ?
-  let mkApply op lhs rhs =
-    Apply (Operator <| Name op, [ lhs; rhs ])
+  let applyOperator symbol lhs rhs =
+    Apply (SelectIntrinsic <| Name symbol, [ lhs; rhs ])
 
   (* Does not handle paranthesis yet. *)
   let operators =
@@ -75,7 +75,7 @@ module Parser =
     opp.TermParser <- term
 
     let infixOperator prefix precedence associativity =
-      InfixOperator (prefix, ws, precedence, associativity, mkApply prefix)
+      InfixOperator (prefix, ws, precedence, associativity, applyOperator prefix)
       |> opp.AddOperator
 
     infixOperator "*" 20 Associativity.Left
@@ -142,7 +142,7 @@ module Parser =
 
   let typeTerm = simpleType
 
-  let typedBinding = typeTerm .>>. identifier |>> Simple
+  let typedBinding = typeTerm .>>. identifier
 
   let declaration = 
     typedBinding  .>>. opt (assign >>. expression) .>> semicolon

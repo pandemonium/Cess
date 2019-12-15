@@ -12,67 +12,81 @@ namespace Cess
       | Abstraction decl -> onAbstraction decl
       | Value term       -> onValue term
 
-  type SymbolTable = Map<Symbol, Term>
+    let abstraction = fold Some (fun _ -> None)
+    let value       = fold (fun _ -> None) Some
+
+  type Symbols = Map<Symbol, Term>
+
+  module Symbols =
+    let name (Name name) = name
 
   type Environment =
-    | Empty
-    | Branch of SymbolTable * Environment
+    | Nil
+    | Frame of Symbols * Environment
 
   module Environment =
     let todo<'a> : 'a = failwith "Not implemented!"
 
-    let empty = Empty
+    let empty = Nil
 
-    let withParent symbols parent =
-      Branch (Map.ofList symbols, parent)
+    let derive symbols baseline =
+      Frame (Map.ofList symbols, baseline)
 
-    let symbolName (Name name) = name
-
-    let rec resolve name = function
-      | Empty -> 
-        name 
-        |> symbolName
-        |> sprintf "unresolved symbol: %A" 
-        |> failwith
-      | Branch (data, parent) ->
+    let rec tryResolve name = function
+      | Nil -> 
+        None
+      | Frame (data, baseline) ->
         data
         |> Map.tryFind name
-        |> Option.defaultWith (fun _ -> resolve name parent)
+        |> Option.bind (fun _ -> tryResolve name baseline)
+
+    let tryResolveAbstraction name =
+      tryResolve name >> Option.bind Term.abstraction
+
+    let tryResolveValue name =
+      tryResolve name >> Option.bind Term.value
 
     let rec add name value = function
-      | Empty -> 
-        withParent [] Empty
-        |> add name value
-      | Branch (data, parent) ->
-        Branch (Map.add name value data, parent)
+      | Nil -> 
+        add name value <| derive [] Nil
+      | Frame (data, baseline) ->
+        Frame (Map.add name value data, baseline)
 
   
   module Interpreter =
     let todo<'a> : 'a = failwith "Not implemented!"
 
-    (* Refactor to make it possible to have an easy resolveValue. *)
-    let resolveAbstraction environment name =
-      let expectation =
-        sprintf "expected function: %A" name
-        |> failwith
+    let expectedAbstraction =
+      failwith << sprintf "%A - expected abstraction"
 
-      Environment.resolve name environment
-      |> Term.fold id expectation
+    let expectedSymbol =
+      failwith << sprintf "%A - expected symbol"
 
     (* A let-binding is very clearly a joint effort together with evaluate. *)
     let rec interpret environment = function
       | x -> todo
 
-    (* *)
+    and applyIntrinsic symbol arguments =
+      todo
+
     and evaluate environment = function
       | Literal constant -> 
-        constant
+        Value constant, environment
 
-      | Variable name -> 
-        Environment.resolve name environment
+      (* name is a NameTerm; where does Operator tryResolve? *)
+      | Variable (Select name)
+      | Variable (SelectIntrinsic name) ->
+        Environment.tryResolve name environment
+        |> Option.defaultValue (expectedSymbol name), 
+        environment
 
-      | Apply (name, arguments) -> 
-        let _, _, formals, body = resolveAbstraction name environment
+      | Apply (SelectIntrinsic name, arguments) ->
+        applyIntrinsic name arguments, environment
+
+      | Apply (Select name, arguments) -> 
+        let _, _, formals, body = 
+          Environment.tryResolveAbstraction name environment
+          |> Option.defaultValue (expectedAbstraction name)
 
         let environment' = reduce arguments formals environment
         // What do I return or do here?
@@ -80,22 +94,17 @@ namespace Cess
         // return anything? What does that mean?
         interpret environment' body
 
-      (* This wants to affect the environment; how does that propagate. *)
-      (* Clearly this has to be something like a Statement Expression.  *)
       | Let (name, expression) ->
-        evaluate environment expression
-        |> Environment.add name environment
+        let result, environment' = evaluate environment expression
 
-        todo
+        result, Environment.add name result environment'
 
     (* Will type-check actuals against formals at some point. *)
     and reduce actuals formals environment =
-      let names = formals |> List.map (fun (_, name) -> name)
-      let symbols =
-        actuals
-        |> List.map (evaluate environment >> Value)
-        |> List.zip names
-      
-      Environment.withParent symbols environment
+      let terms, environment' = List.mapFold evaluate environment actuals
+      let names               = List.map (fun (_, name) -> name) formals
+      let symbols             = List.zip names terms
+
+      Environment.derive symbols environment'
 
     let start = ()

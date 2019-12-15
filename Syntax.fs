@@ -47,7 +47,7 @@ module AbstractSyntax =
 
   and NameTerm =
     | Select          of Symbol
-    | Operator        of Symbol
+    | SelectIntrinsic of Symbol
 
   and Constant =    
     | Int             of int
