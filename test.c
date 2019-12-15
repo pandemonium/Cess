@@ -16,6 +16,8 @@ int main()
 {
   int c = 1, d = 5;
 
+  if (v) printf("Hi");
+
   for (c = 0, d = c; c < 10; c = c + 1) 
     printf ("c = %d, d = %d", c, d);
 

@@ -54,6 +54,7 @@ module AbstractSyntax =
     | Char            of char
     | Float           of float
     | Text            of string
+    | Void
 
   and Symbol =    
     | Name            of string
