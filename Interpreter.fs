@@ -3,6 +3,17 @@ namespace Cess
   open System
   open AbstractSyntax
 
+  module Debug =
+    let todo<'a> : 'a = failwith "Not implemented!"
+
+  module Option =
+    let mapFold (f: 's -> 'a -> 'b * 's) (acc: 's) = function
+      | Some a -> 
+        let b, s = f acc a
+        Some b, s
+      | None   -> 
+        None, acc
+
   type Term =
     | Abstraction of FunctionDecl
     | Value       of Constant
@@ -15,6 +26,8 @@ namespace Cess
     let abstraction = fold Some (fun _ -> None)
     let value       = fold (fun _ -> None) Some
 
+    let defaultValue ty : Term = Debug.todo
+
   type Symbols = Map<Symbol, Term>
 
   module Symbols =
@@ -25,12 +38,13 @@ namespace Cess
     | Frame of Symbols * Environment
 
   module Environment =
-    let todo<'a> : 'a = failwith "Not implemented!"
-
     let empty = Nil
 
     let derive symbols baseline =
-      Frame (Map.ofList symbols, baseline)
+      Frame (symbols, baseline)
+
+    let deriveOfList symbols baseline =
+      derive (Map.ofList symbols) baseline
 
     let rec tryResolve name = function
       | Nil -> 
@@ -46,23 +60,34 @@ namespace Cess
     let tryResolveValue name =
       tryResolve name >> Option.bind Term.value
 
-    let rec add name value = function
+    let rec addBinding name value = function
       | Nil -> 
-        add name value <| derive [] Nil
+        addBinding name value <| deriveOfList [] Nil
       | Frame (data, baseline) ->
         Frame (Map.add name value data, baseline)
 
-  
-  module Interpreter =
-    let todo<'a> : 'a = failwith "Not implemented!"
+    let rec tryUpdateBinding name (f: Term -> Term) = function
+      | Nil ->
+        None
 
+      | Frame (data, baseline) when Map.containsKey name data ->
+        let current = Map.find name data
+        let data'   = Map.add name (f current) data
+
+        Some <| Frame (data', baseline)
+
+      | Frame (data, baseline) ->
+        tryUpdateBinding name f baseline
+        |> Option.map (derive data)
+      
+  module Interpreter =
     let expectedAbstraction =
       failwith << sprintf "%A - expected abstraction"
 
     let expectedSymbol =
       failwith << sprintf "%A - expected symbol"
 
-    let truthy term = todo
+    let truthy term = Debug.todo
 
     (* A let-binding is very clearly a joint effort together with evaluate. *)
     let rec interpret environment = function
@@ -78,7 +103,17 @@ namespace Cess
         |> interpretBlock environment'
 
       | While (predicate, loopBody) ->
-      
+
+          (* Updates to values in the environment must be made at the
+             level of their declaration.
+
+             int i = 0, j = 0;
+
+             // an add(i, i + 1) here would mean that
+             // after the while, i would still be 0.
+             while (j < 10) i = i + 1;
+           *)
+
         let rec loop env =
           let condition, env' = evaluate env predicate
 
@@ -95,23 +130,25 @@ namespace Cess
         environment
 
       (* Bind a random value to binding/name unless expression. *)
-      | Declaration (binding, expression) ->
-        
-      
-        environment
+      | Declaration ((ty, name), expression) ->
+        let term, 
+            environment' = Option.mapFold evaluate environment expression
+        let term'        = Option.defaultWith (fun _ -> Term.defaultValue ty) term
 
+        Environment.addBinding name term' environment'
+
+    (* A block has a return value. Doesn't it? No! *)
     and interpretBlock environment = function
       | Simple stmt    -> interpret environment stmt
       | Compound stmts -> List.fold interpret environment stmts
 
     and applyIntrinsic symbol arguments =
-      todo
+      Debug.todo
 
     and evaluate environment = function
       | Literal constant -> 
         Value constant, environment
 
-      (* name is a NameTerm; where does Operator tryResolve? *)
       | Variable (Select name)
       | Variable (SelectIntrinsic name) ->
         Environment.tryResolve name environment
@@ -131,18 +168,21 @@ namespace Cess
         (* Evaluating the Return statement produces an expression
            that can be evaluated and continued. 
 
-           What if I separate functions from procedures?
-
            Then what do I return after interpreting a procedure call?
 
-           Evaluate to ()?
+           let returnExpression = 
          *)
+
         Value Void, interpretBlock environment' body
 
       | Let (name, expression) ->
         let result, environment' = evaluate environment expression
+        let expected _           = failwith << sprintf "expected symbol: %A"
+        let konst _              = result
 
-        result, Environment.add name result environment'
+        result, 
+        Environment.tryUpdateBinding name konst environment'
+        |> Option.defaultWith (expected name)
 
     (* Will type-check actuals against formals at some point. *)
     and reduce actuals formals environment =
@@ -150,6 +190,6 @@ namespace Cess
       let names               = List.map (fun (_, name) -> name) formals
       let symbols             = List.zip names terms
 
-      Environment.derive symbols environment'
+      Environment.deriveOfList symbols environment'
 
     let start = ()
