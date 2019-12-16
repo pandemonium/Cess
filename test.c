@@ -18,6 +18,16 @@ int main()
 
   if (v) printf("Hi");
 
+  { 
+
+    if (1) 
+      printf("Hi");
+    else
+      puts("hi");
+
+    1;
+  }
+
   for (c = 0, d = c; c < 10; c = c + 1) 
     printf ("c = %d, d = %d", c, d);
 
