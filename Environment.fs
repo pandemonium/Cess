@@ -5,6 +5,7 @@ open AbstractSyntax
 module Debug =
   let todo<'a> : 'a = failwith "Not implemented!"
 
+
 module Option =
   let mapFold (f: 's -> 'a -> 'b * 's) (acc: 's) = function
     | Some a -> 
@@ -12,7 +13,8 @@ module Option =
       Some b, s
     | None   -> 
       None, acc
-  
+ 
+
 type Term =
   | Abstraction of FunctionDecl
   | Value       of Constant
@@ -38,7 +40,6 @@ type Environment =
   | Nil
   | Frame of Symbols * Environment
 
-
 module Environment =
   let empty = Nil
 
@@ -51,23 +52,23 @@ module Environment =
   let deriveNew =
     derive Map.empty
 
-  let rec tryResolve name = function
+  let rec tryLookup name = function
     | Nil -> 
       None
     | Frame (data, baseline) ->
       data
       |> Map.tryFind name
-      |> Option.bind (fun _ -> tryResolve name baseline)
+      |> Option.bind (fun _ -> tryLookup name baseline)
 
-  let tryResolveAbstraction name =
-    tryResolve name >> Option.bind Term.abstraction
+  let tryLookupAbstraction name =
+    tryLookup name >> Option.bind Term.abstraction
 
-  let tryResolveValue name =
-    tryResolve name >> Option.bind Term.value
+  let tryLookupValue name =
+    tryLookup name >> Option.bind Term.value
 
-  let rec addBinding name value = function
+  let rec extend name value = function
     | Nil -> 
-      addBinding name value <| deriveOfList [] Nil
+      extend name value <| deriveOfList [] Nil
     | Frame (data, baseline) ->
       Frame (Map.add name value data, baseline)
 

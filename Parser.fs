@@ -63,7 +63,11 @@ module Parser =
 
   let letBinding = tuple2 (identifier .>> assign) expression |>> Let
 
-  let term = (attempt functionCall) <|> literal <|> variable 
+  let term = 
+    (attempt functionCall) <|> 
+    (attempt letBinding)   <|>
+    literal                <|> 
+    variable 
 
   // Should this take care of `=` ?
   let applyOperator symbol lhs rhs =
@@ -82,7 +86,6 @@ module Parser =
     infixOperator "+" 10 Associativity.Left
     infixOperator "<" 5 Associativity.Left
     infixOperator ">" 5 Associativity.Left
-    infixOperator "=" 1 Associativity.Left
 
     opp.ExpressionParser
 
@@ -100,10 +103,10 @@ module Parser =
   let openBlock = pstring "{" .>> ws
   let closeBlock = pstring "}" .>> ws
 
-  let simpleBlock = statement |>> Block.Simple
+  let simpleBlock = statement |>> Simple
 
-  let compoundBlock = 
-    many statement |> between openBlock closeBlock |>> Block.Compound
+  let compoundBlock =
+    many statement |> between openBlock closeBlock |>> Compound
 
   let block = simpleBlock <|> compoundBlock
 
@@ -126,14 +129,14 @@ module Parser =
     let preamble    =
       tuple3
         (letBindings .>> semicolon) 
-        (conditions .>> semicolon) 
+        (conditions  .>> semicolon) 
         updates
 
     keyword "for"
-        >>. between openParen closeParen preamble
-        .>>. block
-        |>> (fun ((a, b, c), d) -> a, b, c, d)
-        |>> For
+      >>. between openParen closeParen preamble
+      .>>. block
+      |>> (fun ((a, b, c), d) -> a, b, c, d)
+      |>> For
 
   let returnStatement =
     keyword "return" >>. expression .>> semicolon |>> Return

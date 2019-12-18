@@ -62,13 +62,13 @@ module Interpreter =
           environment' = Option.mapFold evaluate environment expression
       let term'        = Option.defaultWith (fun _ -> Term.defaultValue ty) term
 
-      Environment.addBinding name term' environment'
+      Environment.extend name term' environment'
       |> Continue
 
   and interpretBlock environment = function
-    | Simple stmt    -> 
+    | Simple stmt ->
       interpret environment stmt
-    | Compound stmts -> 
+    | Compound stmts ->
       // Wtf!
       List.fold (fun c s -> 
                   Continuation.map (fun e -> interpret e s) c
@@ -85,7 +85,7 @@ module Interpreter =
 
     | Variable (Select name)
     | Variable (SelectIntrinsic name) ->
-      Environment.tryResolve name environment
+      Environment.tryLookup name environment
       |> Option.defaultValue (expectedSymbol name), 
       environment
 
@@ -94,7 +94,7 @@ module Interpreter =
 
     | Apply (Select name, arguments) -> 
       let _, _, formals, body = 
-        Environment.tryResolveAbstraction name environment
+        Environment.tryLookupAbstraction name environment
         |> Option.defaultValue (expectedAbstraction name)
 
       let environment' = reduce arguments formals environment
@@ -106,12 +106,12 @@ module Interpreter =
 
     | Let (name, expression) ->
       let result, environment' = evaluate environment expression
-      let expected _           = failwith << sprintf "expected symbol: %A"
+      let expected _           = expectedSymbol name
       let konst _              = result
 
-      result, 
+      result,
       Environment.tryUpdateBinding name konst environment'
-      |> Option.defaultWith (expected name)
+      |> Option.defaultWith expected
 
   (* Will type-check actuals against formals at some point. *)
   and reduce actuals formals environment =
