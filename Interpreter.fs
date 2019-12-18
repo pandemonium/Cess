@@ -23,7 +23,12 @@ module Interpreter =
   let expectedSymbol<'a> : Symbol -> 'a =
     failwith << sprintf "%A - expected symbol"
 
-  let truthy term = Debug.todo
+  let truthy = function
+    | Value (Int x) -> 
+      x <> 0
+    | x ->
+      printfn "truthy: incomplete match of %A" x
+      false
 
   let rec interpret (environment: Environment) = function
     | Ignore expression ->
@@ -39,6 +44,8 @@ module Interpreter =
       |> interpretBlock environment'
 
     | While (predicate, loopBody) ->
+      printfn "while: env=%A" environment
+
       let rec loop env =
         let condition, env' = evaluate env predicate
 
@@ -76,8 +83,23 @@ module Interpreter =
                 (Continue environment) 
                 stmts
 
-  and applyIntrinsic symbol arguments =
-    Debug.todo
+  and applyIntrinsic symbol arguments environment =
+    match symbol with
+    | Name "+" ->
+      let terms, environment' = List.mapFold evaluate environment arguments
+
+      Intrinsic.plus terms, environment'
+    | Name "<" ->
+      let terms, environment' = List.mapFold evaluate environment arguments
+
+      Intrinsic.lessThan terms, environment'
+    | Name "printf" ->
+      let terms, environment' = List.mapFold evaluate environment arguments
+
+      Intrinsic.printf terms, environment'
+    | name ->
+      sprintf "Intrinsic `%A` not defined." name
+      |> failwith
 
   and evaluate environment = function
     | Literal constant -> 
@@ -86,16 +108,19 @@ module Interpreter =
     | Variable (Select name)
     | Variable (SelectIntrinsic name) ->
       Environment.tryLookup name environment
-      |> Option.defaultValue (expectedSymbol name), 
-      environment
+      |> Option.defaultWith (fun _ -> expectedSymbol name), 
+      environment 
 
     | Apply (SelectIntrinsic name, arguments) ->
-      applyIntrinsic name arguments, environment
+      applyIntrinsic name arguments environment
+
+    | Apply (Select (Name "printf"), arguments) ->
+      applyIntrinsic (Name "printf") arguments environment
 
     | Apply (Select name, arguments) -> 
       let _, _, formals, body = 
         Environment.tryLookupAbstraction name environment
-        |> Option.defaultValue (expectedAbstraction name)
+        |> Option.defaultWith (fun _ -> expectedAbstraction name)
 
       let environment' = reduce arguments formals environment
 
@@ -121,4 +146,4 @@ module Interpreter =
 
     Environment.deriveOfList symbols environment'
 
-  let start = ()
+  let start program = ()

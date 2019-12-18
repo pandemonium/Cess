@@ -20,7 +20,15 @@ let main argv =
   }
   """
 
-  run Parser.block (expr.Trim ())
-  |> printfn "%A"
+  match run Parser.block (expr.Trim ()) with
+  | Success (block, _, _) ->
+    let env = Environment.empty
+    let env' = Interpreter.interpretBlock env block
+
+    printfn "%A" env'
+
+  | Failure _ as fail ->
+    printfn "%A" fail
+  
 
   0 // return an integer exit code

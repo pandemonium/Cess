@@ -58,7 +58,7 @@ module Environment =
     | Frame (data, baseline) ->
       data
       |> Map.tryFind name
-      |> Option.bind (fun _ -> tryLookup name baseline)
+      |> Option.orElseWith (fun _ -> tryLookup name baseline)
 
   let tryLookupAbstraction name =
     tryLookup name >> Option.bind Term.abstraction
