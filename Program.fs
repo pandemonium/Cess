@@ -9,23 +9,22 @@ let main argv =
 
   let expr = """
   {
-    int i = 0;
+    int i;
+    int j = 1;
 
-    while (i < 5) {
-      printf ("i: %d", i);
-      i = i + 1;
+    for (i = 0; i < 500000; i = i + 1) {
+      j = j + 1;
     }
-    
-    printf ("after: %d", i);
+
+    printf ("after - i: %d, j: %d", i, j);
   }
   """
 
   match run Parser.block (expr.Trim ()) with
   | Success (block, _, _) ->
     let env = Environment.empty
-    let env' = Interpreter.interpretBlock env block
-
-    printfn "%A" env'
+    Interpreter.interpretBlock env block
+    |> ignore
 
   | Failure _ as fail ->
     printfn "%A" fail

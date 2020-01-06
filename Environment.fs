@@ -27,8 +27,13 @@ module Term =
   let abstraction = fold Some (fun _ -> None)
   let value       = fold (fun _ -> None) Some
 
-  let defaultValue ty : Term = Debug.todo
-    
+  let defaultValue (ty: TypeTerm) : Term = 
+    match ty with
+    | TypeTerm.Select (Name "int") -> 
+      Int 0xDEADBEEF |> Value
+    | _ -> 
+      Debug.todo
+
 
 type Symbols = Map<Symbol, Term>
 

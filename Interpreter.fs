@@ -43,9 +43,9 @@ module Interpreter =
         else alternative
       |> interpretBlock environment'
 
-    | While (predicate, loopBody) ->
+    | While (invariant, loopBody) ->
       let rec loop env =
-        let condition, env' = evaluate env predicate
+        let condition, env' = evaluate env invariant
 
         if truthy condition
                (* Fekk: this is not(?) tail-recursive. *)
@@ -54,8 +54,22 @@ module Interpreter =
 
       loop <| Environment.makeEmptyChildScope environment
 
-    | For (inits, predicates, updates, loopBody) ->
-      Continue environment
+    | For (inits, invariants, updates, loopBody) ->
+      let _, initialEnvironment = List.mapFold evaluate environment inits
+      let rec loop env =
+        let invariants', env' = List.mapFold evaluate env invariants
+
+        if List.forall truthy invariants'
+          then
+            interpretBlock env' loopBody
+            |> Automaton.map (fun env'' ->
+              let _, env''' = List.mapFold evaluate env'' updates
+
+              loop env'''
+            )
+          else Continue env'
+    
+      loop <| Environment.makeEmptyChildScope initialEnvironment
 
     | Return expression ->
       let term, environment' = evaluate environment expression

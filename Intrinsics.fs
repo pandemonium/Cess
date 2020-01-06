@@ -40,7 +40,8 @@ module Intrinsic =
 
   let printf terms =
     Format.tryRenderFormatted terms
-    |> Result.map (printfn "%s")
+    |> Result.map (printf "%s")
+    |> ignore
 
     Int 0 |> Value
 

@@ -1,35 +1,16 @@
 #include <stdio.h>
 
-int g = 10;
-
-int foo(int j)
-{
-  return 1;
-}
-
-void v(int j)
-{
-  printf("hi, mom");
-}
-
 int main()
 {
-  int c = 1, d = 5;
+  int i;
+  int j = 1;
 
-  if (v) printf("Hi");
-
-  { 
-
-    if (1) 
-      printf("Hi");
-    else
-      puts("hi");
-
-    1;
+  for (i = 0; i < 5; i = i + 1) {
+    printf ("i: %d; j: %d\n", i, j);
+    j = j + 1;
   }
 
-  for (c = 0, d = c; c < 10; c = c + 1) 
-    printf ("c = %d, d = %d", c, d);
+  printf ("after - i: %d, j: %d\n", i, j);
 
   return 0;
 }

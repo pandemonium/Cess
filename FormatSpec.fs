@@ -47,7 +47,7 @@ namespace Cess
       let Value (Text formatSpec) :: arguments = terms
 
       let formatArgument (args, output) = function
-        | Flag _    ->
+        | Flag _ ->
           let term :: tail = args
           tail,
           sprintf "%s%s" output (Show.term term)
