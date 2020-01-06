@@ -38,15 +38,21 @@ module Intrinsic =
     |> Constant.Int |> Term.Value
     | _ -> failwith "yeah, no."
 
-  let printf (terms: Term list) =
-    let show = sprintf "%A"
-
-    let text =
-      terms
-      |> Seq.ofList
-      |> Seq.map show
-      |> String.concat ""
-
-    printfn "%s" text
+  let printf terms =
+    Format.tryRenderFormatted terms
+    |> Result.map (printfn "%s")
 
     Int 0 |> Value
+
+//  let printf (terms: Term list) =
+//    let show = sprintf "%A"
+//
+//    let text =
+//      terms
+//      |> Seq.ofList
+//      |> Seq.map show
+//      |> String.concat ""
+//
+//    printfn "%s" text
+//
+//    Int 0 |> Value
