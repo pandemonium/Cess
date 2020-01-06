@@ -113,13 +113,14 @@ module Parser =
   let predicateSection = between openParen closeParen expression
 
   let ifStatement =
-    let whenFalse = keyword "else" >>. block
-    let whenTrue  = block
+    let alternative = keyword "else" >>. block
+    let consequent  = block
 
-    keyword "if" >>. tuple3 predicateSection whenTrue whenFalse |>> If
+    keyword "if" >>. tuple3 predicateSection consequent alternative |>> If
 
   let whileStatement =
     let loopBody = block
+
     keyword "while" >>. tuple2 predicateSection loopBody |>> While
 
   let forStatement =

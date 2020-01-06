@@ -38,24 +38,24 @@ module Symbols =
 
 type Environment =
   | Nil
-  | Frame of Symbols * Environment
+  | Scope of Symbols * Environment
 
 module Environment =
   let empty = Nil
 
-  let derive symbols baseline =
-    Frame (symbols, baseline)
+  let makeChildScope symbols enclosingScope =
+    Scope (symbols, enclosingScope)
 
-  let deriveOfList symbols =
-    derive <| Map.ofList symbols
+  let makeChildScopeOfList =
+    makeChildScope << Map.ofList
 
-  let deriveNew =
-    derive Map.empty
+  let makeEmptyChildScope =
+    makeChildScope Map.empty
 
   let rec tryLookup name = function
     | Nil -> 
       None
-    | Frame (data, baseline) ->
+    | Scope (data, baseline) ->
       data
       |> Map.tryFind name
       |> Option.orElseWith (fun _ -> tryLookup name baseline)
@@ -68,20 +68,20 @@ module Environment =
 
   let rec extend name value = function
     | Nil -> 
-      extend name value <| deriveOfList [] Nil
-    | Frame (data, baseline) ->
-      Frame (Map.add name value data, baseline)
+      extend name value <| makeChildScopeOfList [] Nil
+    | Scope (data, baseline) ->
+      Scope (Map.add name value data, baseline)
 
   let rec tryUpdateBinding name (f: Term -> Term) = function
     | Nil ->
       None
 
-    | Frame (data, baseline) when Map.containsKey name data ->
+    | Scope (data, baseline) when Map.containsKey name data ->
       let current = Map.find name data
       let data'   = Map.add name (f current) data
 
-      Some <| Frame (data', baseline)
+      Some <| Scope (data', baseline)
 
-    | Frame (data, baseline) ->
+    | Scope (data, baseline) ->
       tryUpdateBinding name f baseline
-      |> Option.map (derive data)
+      |> Option.map (makeChildScope data)

@@ -2,12 +2,12 @@ namespace Cess
 
 open AbstractSyntax
 
-
-type Continuation =
+(* Maybe these are in fact Automat and not Continuation? *)
+type Automaton =
   | Break    of Term
   | Continue of Environment
 
-module Continuation =
+module Automaton =
   let map f = function
     | Continue environment -> f environment
     | break'               -> break'
@@ -35,26 +35,24 @@ module Interpreter =
       evaluate environment expression 
       |> (snd >> Continue)
 
-    | If (predicate, whenTrue, whenFalse) ->
+    | If (predicate, consequent, alternative) ->
       let condition, environment' = evaluate environment predicate
 
       if truthy condition
-        then whenTrue
-        else whenFalse
+        then consequent
+        else alternative
       |> interpretBlock environment'
 
     | While (predicate, loopBody) ->
-      printfn "while: env=%A" environment
-
       let rec loop env =
         let condition, env' = evaluate env predicate
 
         if truthy condition
                (* Fekk: this is not(?) tail-recursive. *)
-          then Continuation.map loop <| interpretBlock env' loopBody
+          then Automaton.map loop <| interpretBlock env' loopBody
           else Continue env'
 
-      loop <| Environment.deriveNew environment
+      loop <| Environment.makeEmptyChildScope environment
 
     | For (inits, predicates, updates, loopBody) ->
       Continue environment
@@ -78,11 +76,12 @@ module Interpreter =
     | Compound stmts ->
       // Wtf!
       List.fold (fun c s -> 
-                  Continuation.map (fun e -> interpret e s) c
+                  Automaton.map (fun e -> interpret e s) c
                 )
                 (Continue environment) 
                 stmts
 
+  (* Move this to some sort of resolveIntrinsic that can host this complexity. *)
   and applyIntrinsic symbol arguments environment =
     match symbol with
     | Name "+" ->
@@ -127,7 +126,7 @@ module Interpreter =
       (* Error condition: void return with a declaration that
          promises a real value. *)
       interpretBlock environment' body
-      |> Continuation.term (Value Void), environment'
+      |> Automaton.term (Value Void), environment'
 
     | Let (name, expression) ->
       let result, environment' = evaluate environment expression
@@ -144,6 +143,7 @@ module Interpreter =
     let names               = List.map (fun (_, name) -> name) formals
     let symbols             = List.zip names terms
 
-    Environment.deriveOfList symbols environment'
+    environment'
+    |> Environment.makeChildScopeOfList symbols
 
   let start program = ()
