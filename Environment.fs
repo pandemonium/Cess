@@ -15,11 +15,11 @@ module Option =
       None, acc
  
 
-type Term =
+type Domain =
   | Abstraction of FunctionDecl
   | Value       of Constant
 
-module Term =
+module Domain =
   let fold onAbstraction onValue = function
     | Abstraction decl -> onAbstraction decl
     | Value term       -> onValue term
@@ -27,7 +27,7 @@ module Term =
   let abstraction = fold Some (fun _ -> None)
   let value       = fold (fun _ -> None) Some
 
-  let defaultValue (ty: TypeTerm) : Term = 
+  let defaultValue (ty: TypeTerm) : Domain = 
     match ty with
     | TypeTerm.Select (Name "int") -> 
       Int 0xDEADBEEF |> Value
@@ -35,58 +35,45 @@ module Term =
       Debug.todo
 
 
-type Symbols = Map<Symbol, Term>
+type 't Symbols = Map<Symbol, 't>
 
 module Symbols =
   let name (Name name) = name
 
 
-type Environment =
+type 't Environment =
   | Nil
-  | Scope of Symbols * Environment
+  | Scope of 't Symbols * 't Environment
 
 module Environment =
   let empty = Nil
 
-  let makeChildScope symbols enclosingScope =
-    Scope (symbols, enclosingScope)
+  let enter enclosingScope =
+    Scope (Map.empty, enclosingScope)
 
-  let makeChildScopeOfList =
-    makeChildScope << Map.ofList
-
-  let makeEmptyChildScope =
-    makeChildScope Map.empty
-
-  let rec tryLookup name = function
-    | Nil -> 
-      None
-    | Scope (data, baseline) ->
-      data
-      |> Map.tryFind name
-      |> Option.orElseWith (fun _ -> tryLookup name baseline)
-
-  let tryLookupAbstraction name =
-    tryLookup name >> Option.bind Term.abstraction
-
-  let tryLookupValue name =
-    tryLookup name >> Option.bind Term.value
+  let noSuchSymbol name =
+    failwith <| sprintf "No such symbol %s" (Symbols.name name)
 
   let rec extend name value = function
-    | Nil -> 
-      extend name value <| makeChildScopeOfList [] Nil
-    | Scope (data, baseline) ->
-      Scope (Map.add name value data, baseline)
+    | Nil ->
+      extend name value <| enter Nil
+    | Scope (symbols, scope) ->
+      Scope (Map.add name value symbols, scope)
 
-  let rec tryUpdateBinding name (f: Term -> Term) = function
+  let withList symbols =
+    List.foldBack <| (<||) extend <| symbols
+
+  let rec update name f = function
+    | Nil ->
+      noSuchSymbol name
+    | Scope (symbols, scope) ->
+      match Map.tryFind name symbols with
+      | Some value -> Scope (Map.add name (f value) symbols, scope)
+      | None       -> Scope (symbols, update name f scope)
+
+  let rec tryLookup name = function
     | Nil ->
       None
-
-    | Scope (data, baseline) when Map.containsKey name data ->
-      let current = Map.find name data
-      let data'   = Map.add name (f current) data
-
-      Some <| Scope (data', baseline)
-
-    | Scope (data, baseline) ->
-      tryUpdateBinding name f baseline
-      |> Option.map (makeChildScope data)
+    | Scope (symbols, scope) ->
+      Map.tryFind name symbols
+      |> Option.orElseWith (fun _ -> tryLookup name scope)

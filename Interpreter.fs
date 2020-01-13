@@ -4,8 +4,8 @@ open AbstractSyntax
 
 (* Maybe these are in fact Automat and not Continuation? *)
 type Automaton =
-  | Break    of Term
-  | Continue of Environment
+  | Break    of Domain
+  | Continue of Domain Environment
 
 module Automaton =
   let map f = function
@@ -23,6 +23,14 @@ module Interpreter =
   let expectedSymbol<'a> : Symbol -> 'a =
     failwith << sprintf "%A - expected symbol"
 
+  let tryLookupAbstraction name =
+    Environment.tryLookup name 
+      >> Option.bind Domain.abstraction
+
+  let tryLookupValue name =
+    Environment.tryLookup name 
+      >> Option.bind Domain.value
+    
   let truthy = function
     | Value (Int x) -> 
       x <> 0
@@ -30,7 +38,7 @@ module Interpreter =
       printfn "truthy: incomplete match of %A" x
       false
 
-  let rec interpret (environment: Environment) = function
+  let rec interpret environment = function
     | Ignore expression ->
       evaluate environment expression 
       |> (snd >> Continue)
@@ -52,7 +60,7 @@ module Interpreter =
           then Automaton.map loop <| interpretBlock env' loopBody
           else Continue env'
 
-      loop <| Environment.makeEmptyChildScope environment
+      loop <| Environment.enter environment
 
     | For (inits, invariants, updates, loopBody) ->
       let _, initialEnvironment = List.mapFold evaluate environment inits
@@ -69,7 +77,7 @@ module Interpreter =
             )
           else Continue env'
     
-      loop <| Environment.makeEmptyChildScope initialEnvironment
+      loop <| Environment.enter initialEnvironment
 
     | Return expression ->
       let term, environment' = evaluate environment expression
@@ -79,7 +87,7 @@ module Interpreter =
     | Declaration ((ty, name), expression) ->
       let term, 
           environment' = Option.mapFold evaluate environment expression
-      let term'        = Option.defaultWith (fun _ -> Term.defaultValue ty) term
+      let term'        = Option.defaultWith (fun _ -> Domain.defaultValue ty) term
 
       Environment.extend name term' environment'
       |> Continue
@@ -132,7 +140,7 @@ module Interpreter =
 
     | Apply (Select name, arguments) -> 
       let _, _, formals, body = 
-        Environment.tryLookupAbstraction name environment
+        tryLookupAbstraction name environment
         |> Option.defaultWith (fun _ -> expectedAbstraction name)
 
       let environment' = reduce arguments formals environment
@@ -144,12 +152,10 @@ module Interpreter =
 
     | Let (name, expression) ->
       let result, environment' = evaluate environment expression
-      let expected _           = expectedSymbol name
       let konst _              = result
 
       result,
-      Environment.tryUpdateBinding name konst environment'
-      |> Option.defaultWith expected
+      Environment.update name konst environment'
 
   (* Will type-check actuals against formals at some point. *)
   and reduce actuals formals environment =
@@ -158,6 +164,7 @@ module Interpreter =
     let symbols             = List.zip names terms
 
     environment'
-    |> Environment.makeChildScopeOfList symbols
+    |> Environment.enter
+    |> Environment.withList symbols
 
   let start program = ()

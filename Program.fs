@@ -12,7 +12,7 @@ let main argv =
     int i;
     int j = 1;
 
-    for (i = 0; i < 500000; i = i + 1) {
+    for (i = 0; i < 20000; i = i + 1) {
       j = j + 1;
     }
 

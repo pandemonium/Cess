@@ -13,7 +13,7 @@ module Constant =
 
 module Intrinsic =
   let plus = function
-    | (Term.Value lhs) :: (Term.Value rhs) :: _ ->
+    | (Domain.Value lhs) :: (Domain.Value rhs) :: _ ->
       match lhs, rhs with
       | Int i, Int j     -> i + j |> Int
       | Char i, Char j   -> i + j |> Constant.Char
@@ -22,11 +22,11 @@ module Intrinsic =
         sprintf "No %s -> %s -> <any> signature"
           (Constant.typeName lhs) (Constant.typeName rhs)
         |> failwith
-    |> Term.Value
+    |> Domain.Value
     | _ -> failwith "yeah, no."
 
   let lessThan = function
-    | (Term.Value lhs) :: (Term.Value rhs) :: _ ->
+    | (Domain.Value lhs) :: (Domain.Value rhs) :: _ ->
       match lhs, rhs with
       | Int i, Int j     -> if i < j then 1 else 0
       | Char i, Char j   -> if i < j then 1 else 0
@@ -35,7 +35,7 @@ module Intrinsic =
         sprintf "No %s -> %s -> <any> signature"
           (Constant.typeName lhs) (Constant.typeName rhs)
         |> failwith
-    |> Constant.Int |> Term.Value
+    |> Constant.Int |> Domain.Value
     | _ -> failwith "yeah, no."
 
   let printf terms =
@@ -45,7 +45,7 @@ module Intrinsic =
 
     Int 0 |> Value
 
-//  let printf (terms: Term list) =
+//  let printf (terms: Domain list) =
 //    let show = sprintf "%A"
 //
 //    let text =

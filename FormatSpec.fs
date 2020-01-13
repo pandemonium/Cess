@@ -43,7 +43,7 @@ namespace Cess
   module Format =
     let todo<'a> : 'a = failwith "todo."
 
-    let tryRenderFormatted (terms: Term list) =
+    let tryRenderFormatted (terms: Domain list) =
       let Value (Text formatSpec) :: arguments = terms
 
       let formatArgument (args, output) = function

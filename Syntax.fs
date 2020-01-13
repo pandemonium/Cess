@@ -22,8 +22,8 @@ module AbstractSyntax =
 
   and Expression =
     | Literal         of Constant
-    | Variable        of NameTerm
-    | Apply           of NameTerm * Expression list
+    | Variable        of ValueTerm
+    | Apply           of ValueTerm * Expression list
     | Let             of LetBinding
 
   and Block =
@@ -45,7 +45,7 @@ module AbstractSyntax =
     | Pointer         of TypeTerm
     | Array           of TypeTerm
 
-  and NameTerm =
+  and ValueTerm =
     | Select          of Symbol
     | SelectIntrinsic of Symbol
 
