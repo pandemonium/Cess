@@ -146,10 +146,12 @@ module Parser =
 
   let typeTerm = simpleType
 
-  let typedBinding = typeTerm .>>. identifier
+  let typedBinding = 
+    typeTerm .>>. identifier
+    |>> (fun (type', term) -> term, type')
 
   let declaration = 
-    typedBinding  .>>. opt (assign >>. expression) .>> semicolon
+    typedBinding .>>. opt (assign >>. expression) .>> semicolon
 
   let declareStatement = declaration |>> Declaration 
 
@@ -174,8 +176,8 @@ module Parser =
   let variableDeclaration = declaration |>> ToplevelDeclaration.Variable
 
   let toplevelDeclaration = 
-    (attempt functionDeclaration) <|> variableDeclaration
+    (attempt functionDeclaration) // <|> variableDeclaration
 
   let compilationUnit = 
-    ws >>. many1 toplevelDeclaration .>> eof
+    ws >>. many1 toplevelDeclaration .>> eof |>> CompilationUnit
     

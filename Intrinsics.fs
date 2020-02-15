@@ -12,6 +12,13 @@ module Constant =
     | Void _  -> "Void"
 
 module Intrinsic =
+  module Type =
+    let Char  = "char"  |> Name |> TypeTerm.Select
+    let Float = "float" |> Name |> TypeTerm.Select
+    let Int   = "int"   |> Name |> TypeTerm.Select
+    let Text  = "char"  |> Name |> TypeTerm.Select |> Pointer
+    let Void  = "void"  |> Name |> TypeTerm.Select
+
   let plus = function
     | (Domain.Value lhs) :: (Domain.Value rhs) :: _ ->
       match lhs, rhs with

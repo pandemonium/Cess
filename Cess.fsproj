@@ -7,9 +7,9 @@
     <Compile Include="Syntax.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Environment.fs" />
-    <Compile Include="Typer.fs" />
     <Compile Include="FormatSpec.fs" />
     <Compile Include="Intrinsics.fs" />
+    <Compile Include="Typer.fs" />
     <Compile Include="Interpreter.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

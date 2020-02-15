@@ -5,7 +5,7 @@ module AbstractSyntax =
   type Tree =
     | CompilationUnit of ToplevelDeclaration list
 
-  and TypedBinding     = TypeTerm * Symbol
+  and TypedBinding     = Symbol * TypeTerm
 
   and FunctionDecl     = TypeTerm * Symbol * TypedBinding list * Block
 
@@ -44,6 +44,7 @@ module AbstractSyntax =
     | Select          of Symbol
     | Pointer         of TypeTerm
     | Array           of TypeTerm
+    | Arrow           of TypeTerm list * TypeTerm
 
   and ValueTerm =
     | Select          of Symbol

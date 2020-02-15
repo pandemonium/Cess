@@ -8,7 +8,7 @@ type Automaton =
   | Continue of Domain Environment
 
 module Automaton =
-  let map f = function
+  let bind f = function
     | Continue environment -> f environment
     | break'               -> break'
 
@@ -57,7 +57,7 @@ module Interpreter =
 
         if truthy condition
                (* Fekk: this is not(?) tail-recursive. *)
-          then Automaton.map loop <| interpretBlock env' loopBody
+          then Automaton.bind loop <| interpretBlock env' loopBody
           else Continue env'
 
       loop <| Environment.enter environment
@@ -70,7 +70,7 @@ module Interpreter =
         if List.forall truthy invariants'
           then
             interpretBlock env' loopBody
-            |> Automaton.map (fun env'' ->
+            |> Automaton.bind (fun env'' ->
               let _, env''' = List.mapFold evaluate env'' updates
 
               loop env'''
@@ -84,7 +84,7 @@ module Interpreter =
       Break term
 
     (* Bind a random value to binding/name unless expression. *)
-    | Declaration ((ty, name), expression) ->
+    | Declaration ((name, ty), expression) ->
       let term, 
           environment' = Option.mapFold evaluate environment expression
       let term'        = Option.defaultWith (fun _ -> Domain.defaultValue ty) term
@@ -98,7 +98,7 @@ module Interpreter =
     | Compound stmts ->
       // Wtf!
       List.fold (fun c s -> 
-                  Automaton.map (fun e -> interpret e s) c
+                  Automaton.bind (fun e -> interpret e s) c
                 )
                 (Continue environment) 
                 stmts
@@ -160,7 +160,7 @@ module Interpreter =
   (* Will type-check actuals against formals at some point. *)
   and reduce actuals formals environment =
     let terms, environment' = List.mapFold evaluate environment actuals
-    let names               = List.map (fun (_, name) -> name) formals
+    let names               = List.map fst formals
     let symbols             = List.zip names terms
 
     environment'
